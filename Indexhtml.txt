@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>USDT Link & QR Generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      padding: 30px;
+    }
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      margin: auto;
+    }
+    h2 {
+      text-align: center;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #007bff;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #linkOutput, #qrcode {
+      margin-top: 20px;
+      text-align: center;
+      word-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>USDT Link & QR Code Generator</h2>
+    <label>Recipient Wallet Address:</label>
+    <input type="text" id="addressInput" placeholder="0x..." />
+
+    <label>Amount (USDT):</label>
+    <input type="number" step="any" id="amountInput" placeholder="e.g. 5" />
+
+    <button onclick="generateLink()">Generate Link & QR Code</button>
+
+    <div id="linkOutput"></div>
+    <div id="qrcode"></div>
+  </div>
+
+  <script>
+    function toPaddedHex(value) {
+      return value.toString(16).padStart(64, '0');
+    }
+
+    function calculateGasLimit(amount) {
+      const parsedAmount = parseFloat(amount);
+      if (parsedAmount <= 1000) return 50000;
+      if (parsedAmount <= 100000) return 60000;
+      if (parsedAmount <= 1000000) return 70000;
+      return 80000;
+    }
+
+    function generateLink() {
+      const address = document.getElementById('addressInput').value.trim();
+      const amount = document.getElementById('amountInput').value.trim();
+      const output = document.getElementById('linkOutput');
+      const qrContainer = document.getElementById('qrcode');
+
+      if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+        output.innerHTML = '<span style="color: red;">Invalid address</span>';
+        qrContainer.innerHTML = '';
+        return;
+      }
+
+      if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+        output.innerHTML = '<span style="color: red;">Invalid amount</span>';
+        qrContainer.innerHTML = '';
+        return;
+      }
+
+      const gasLimit = calculateGasLimit(amount);
+      const amountWei = BigInt(Math.floor(parseFloat(amount) * 1e18));
+      const addressClean = address.toLowerCase().replace('0x', '');
+      const functionSelector = 'a9059cbb';
+      const paddedAddress = toPaddedHex(BigInt('0x' + addressClean));
+      const paddedAmount = toPaddedHex(amountWei);
+      const data = '0x' + functionSelector + paddedAddress + paddedAmount;
+
+      const link = `https://link.trustwallet.com/send?asset=c20000714&address=0x55d398326f99059fF775485246999027B3197955&amount=0&data=${data}&gas=${gasLimit}`;
+
+      output.innerHTML = `<strong>Generated Link:</strong><br><a href="${link}" target="_blank">${link}</a>`;
+
+      qrContainer.innerHTML = '';
+      new QRCode(qrContainer, {
+        text: link,
+        width: 200,
+        height: 200,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
+  </script>
+</body>
+</html>
